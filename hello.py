@@ -3,6 +3,8 @@
 Simple greeting script that displays the current time.
 """
 
+# Dummy
+
 from datetime import datetime
 
 
