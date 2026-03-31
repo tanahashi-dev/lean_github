@@ -63,6 +63,7 @@ def main():
     try:
         temp, condition = get_tokyo_weather()
         print(f"東京都の現在の天気: {condition}、気温 {temp}°C")
+        print(f"Current weather in Tokyo: {condition}, {temp}°C")
     except Exception as e:
         print(f"天気情報の取得に失敗しました: {e}")
 

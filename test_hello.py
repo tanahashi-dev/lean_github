@@ -39,8 +39,16 @@ class TestHello(unittest.TestCase):
     def test_main_calls_print(self, mock_print, mock_weather):
         """Test that main function calls print."""
         hello.main()
-        # Should call print at least 4 times (greeting, Japanese time, English time, weather)
-        self.assertGreaterEqual(mock_print.call_count, 4)
+        # Should call print at least 5 times (greeting, Japanese time, English time, Japanese weather, English weather)
+        self.assertGreaterEqual(mock_print.call_count, 5)
+
+    @patch('hello.get_tokyo_weather', return_value=(22.0, "晴れ (Mainly clear)"))
+    @patch('builtins.print')
+    def test_main_prints_english_weather(self, mock_print, mock_weather):
+        """Test that main prints English weather line."""
+        hello.main()
+        printed = [str(call) for call in mock_print.call_args_list]
+        self.assertTrue(any("Current weather in Tokyo" in s for s in printed))
 
     def test_datetime_now_returns_datetime(self):
         """Test that datetime.now() works as expected."""
