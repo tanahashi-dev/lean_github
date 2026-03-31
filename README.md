@@ -24,3 +24,20 @@
 
 ### スクリプトを実行
 
+```bash
+python hello.py
+```
+
+### テストを実行
+
+```bash
+python -m unittest test_hello.py
+```
+python hello.py
+```
+
+### テストを実行
+
+```bash
+python -m unittest test_hello.py
+```
