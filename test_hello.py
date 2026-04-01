@@ -3,6 +3,7 @@
 Test cases for hello.py script.
 """
 
+import json
 import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
@@ -34,21 +35,33 @@ class TestHello(unittest.TestCase):
         self.assertTrue(hasattr(hello, 'main'))
         self.assertTrue(callable(hello.main))
 
+    @patch('hello.get_tokyo_tomorrow_weather', return_value=("2026-04-02", 18.0, 10.0, "晴れ (Mainly clear)"))
     @patch('hello.get_tokyo_weather', return_value=(20.5, "晴れ (Mainly clear)"))
     @patch('builtins.print')
-    def test_main_calls_print(self, mock_print, mock_weather):
+    def test_main_calls_print(self, mock_print, mock_weather, mock_tomorrow):
         """Test that main function calls print."""
         hello.main()
-        # Should call print at least 5 times (greeting, Japanese time, English time, Japanese weather, English weather)
-        self.assertGreaterEqual(mock_print.call_count, 5)
+        # Should call print at least 7 times (greeting, Japanese time, English time,
+        # Japanese weather, English weather, Japanese tomorrow, English tomorrow)
+        self.assertGreaterEqual(mock_print.call_count, 7)
 
+    @patch('hello.get_tokyo_tomorrow_weather', return_value=("2026-04-02", 22.0, 12.0, "晴れ (Mainly clear)"))
     @patch('hello.get_tokyo_weather', return_value=(22.0, "晴れ (Mainly clear)"))
     @patch('builtins.print')
-    def test_main_prints_english_weather(self, mock_print, mock_weather):
+    def test_main_prints_english_weather(self, mock_print, mock_weather, mock_tomorrow):
         """Test that main prints English weather line."""
         hello.main()
         printed = [str(call) for call in mock_print.call_args_list]
         self.assertTrue(any("Current weather in Tokyo" in s for s in printed))
+
+    @patch('hello.get_tokyo_tomorrow_weather', return_value=("2026-04-02", 22.0, 12.0, "晴れ (Mainly clear)"))
+    @patch('hello.get_tokyo_weather', return_value=(22.0, "晴れ (Mainly clear)"))
+    @patch('builtins.print')
+    def test_main_prints_tomorrow_weather(self, mock_print, mock_weather, mock_tomorrow):
+        """Test that main prints tomorrow's weather line."""
+        hello.main()
+        printed = [str(call) for call in mock_print.call_args_list]
+        self.assertTrue(any("Tomorrow's weather in Tokyo" in s for s in printed))
 
     def test_datetime_now_returns_datetime(self):
         """Test that datetime.now() works as expected."""
@@ -74,13 +87,36 @@ class TestHello(unittest.TestCase):
         self.assertEqual(temp, 18.5)
         self.assertIn("Mainly clear", condition)
 
+    @patch('hello.get_tokyo_tomorrow_weather', side_effect=Exception("network error"))
     @patch('hello.get_tokyo_weather', side_effect=Exception("network error"))
     @patch('builtins.print')
-    def test_main_handles_weather_error(self, mock_print, mock_weather):
+    def test_main_handles_weather_error(self, mock_print, mock_weather, mock_tomorrow):
         """Test that main handles weather fetch errors gracefully."""
         hello.main()
         printed = [str(call) for call in mock_print.call_args_list]
         self.assertTrue(any("失敗" in s for s in printed))
+
+    @patch('hello.urllib.request.urlopen')
+    def test_get_tokyo_tomorrow_weather_success(self, mock_urlopen):
+        """Test that get_tokyo_tomorrow_weather returns date, max/min temp and condition."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps({
+            "daily": {
+                "time": ["2026-04-01", "2026-04-02"],
+                "weathercode": [1, 2],
+                "temperature_2m_max": [20.0, 22.0],
+                "temperature_2m_min": [12.0, 14.0],
+            }
+        }).encode()
+        mock_response.__enter__ = lambda s: s
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        tomorrow_date, temp_max, temp_min, condition = hello.get_tokyo_tomorrow_weather()
+        self.assertEqual(tomorrow_date, "2026-04-02")
+        self.assertEqual(temp_max, 22.0)
+        self.assertEqual(temp_min, 14.0)
+        self.assertIn("Partly cloudy", condition)
 
     def test_weather_codes_dict(self):
         """Test that WEATHER_CODES contains common codes."""
