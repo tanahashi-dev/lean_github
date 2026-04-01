@@ -5,7 +5,7 @@ Simple greeting script that displays the current time and Tokyo weather.
 
 import json
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 WEATHER_CODES = {
@@ -50,6 +50,26 @@ def get_tokyo_weather():
     return temp, condition
 
 
+def get_tokyo_tomorrow_weather():
+    """Fetch tomorrow's weather forecast for Tokyo from open-meteo API."""
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        "?latitude=35.6895&longitude=139.6917"
+        "&daily=weathercode,temperature_2m_max,temperature_2m_min"
+        "&timezone=Asia%2FTokyo"
+    )
+    with urllib.request.urlopen(url, timeout=5) as response:
+        data = json.loads(response.read().decode())
+    daily = data["daily"]
+    # Index 0 is today, index 1 is tomorrow
+    code = daily["weathercode"][1]
+    temp_max = daily["temperature_2m_max"][1]
+    temp_min = daily["temperature_2m_min"][1]
+    condition = WEATHER_CODES.get(code, f"天気コード {code}")
+    tomorrow_date = daily["time"][1]
+    return tomorrow_date, temp_max, temp_min, condition
+
+
 def main():
     # Get current time
     current_time = datetime.now()
@@ -59,13 +79,21 @@ def main():
     print(f"現在の時刻: {current_time.strftime('%Y年%m月%d日 %H:%M:%S')}")
     print(f"Current time: {current_time.strftime('%B %d, %Y %H:%M:%S')}")
 
-    # Display Tokyo weather
+    # Display Tokyo current weather
     try:
         temp, condition = get_tokyo_weather()
         print(f"東京都の現在の天気: {condition}、気温 {temp}°C")
         print(f"Current weather in Tokyo: {condition}, {temp}°C")
     except Exception as e:
         print(f"天気情報の取得に失敗しました: {e}")
+
+    # Display Tokyo tomorrow's weather
+    try:
+        tomorrow_date, temp_max, temp_min, condition = get_tokyo_tomorrow_weather()
+        print(f"東京都の明日({tomorrow_date})の天気: {condition}、最高 {temp_max}°C / 最低 {temp_min}°C")
+        print(f"Tomorrow's weather in Tokyo ({tomorrow_date}): {condition}, High {temp_max}°C / Low {temp_min}°C")
+    except Exception as e:
+        print(f"明日の天気情報の取得に失敗しました: {e}")
 
 
 if __name__ == "__main__":
